@@ -1,0 +1,38 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/src/**/__pycache__/
+**/__pycache__/
+**/*.pyc
+backend/.pytest_cache/
+backend/*.egg-info/
+backend/dist/
+backend/build/
+
+# Node.js / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディター
+.vscode/
+.idea/
+
+# プロジェクトデータ (学習データ・モデルは含めない)
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+output/
+cache/
+
+# 秘密情報
+.env
+.env.local
+*.env

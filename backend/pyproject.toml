@@ -1,0 +1,53 @@
+[project]
+name = "neme-anima"
+version = "0.1.0"
+description = "アニメキャラクターの LoRA 学習データをビデオから自動抽出するツール"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # CLI
+    "typer>=0.12",
+    # 数値・画像処理
+    "numpy>=1.26,<2.2",
+    "Pillow>=10.4",
+    "opencv-python>=4.10",
+    # シーン検出
+    "scenedetect>=0.6.5",
+    # 動画デコード
+    "decord>=0.6.0",
+    # 進捗表示
+    "tqdm>=4.66",
+    "rich>=13.7",
+    # データ処理 (トラックレットのキャッシュに使う)
+    "pandas>=2.2",
+    "pyarrow>=18.0",
+    # Web サーバー
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+# GPU グループ: 実際の推論に使うモデル群 (VRAM 必要)
+gpu = [
+    "imgutils[gpu]>=0.18",   # DeepGHS YOLO + CCIP + WD14 をまとめて提供
+    "torch>=2.2",
+    "torchvision>=0.17",
+]
+# 開発・テスト
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",           # FastAPI のテストクライアント
+]
+
+[project.scripts]
+# `neme-anima ui` でサーバー起動できるようにする
+neme-anima = "neme_anima.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neme_anima"]
