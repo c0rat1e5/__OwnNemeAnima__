@@ -1,0 +1,13 @@
+INFO:     Will watch for changes in these directories: ['/home/default/AC/__OwnNemeAnima__/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [31860] using WatchFiles
+INFO:     Started server process [31864]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:44316 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [31864]
+INFO:     Stopping reloader process [31860]
