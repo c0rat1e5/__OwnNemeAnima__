@@ -6,10 +6,10 @@
 
 import { cn } from "@/lib/utils";
 
-export type TabId = "sources" | "frames" | "training" | "settings";
+export type TabId = "upload" | "frames" | "training" | "settings";
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: "sources",  label: "Sources"  },
+  { id: "upload",   label: "Upload"   },
   { id: "frames",   label: "Frames"   },
   { id: "training", label: "Training" },
   { id: "settings", label: "Settings" },

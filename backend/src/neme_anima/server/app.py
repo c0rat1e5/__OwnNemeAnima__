@@ -25,8 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 from neme_anima.server.events import Broadcaster, Event
 from neme_anima.server.job_progress import (
-    EXTRACT_STAGES,
-    RERUN_STAGES,
+    TAG_STAGES,
     JobProgress,
 )
 from neme_anima.server.queue import JobQueue
@@ -52,54 +51,38 @@ def _make_pipeline_runner(
     """
 
     def runner(job_id: str, payload: dict) -> None:
-        kind = payload.get("kind", "extract")  # "extract" | "rerun"
         project_slug = str(payload.get("project_slug", ""))
-        source_idx = int(payload.get("source_idx", 0))
+        character_slug = payload.get("character_slug") or None
+        retag = bool(payload.get("retag", False))
 
         project = registry.get(project_slug)
         if project is None:
             logger.error("runner: project not found: %s", project_slug)
             return
 
-        stages = EXTRACT_STAGES if kind == "extract" else RERUN_STAGES
         loop = asyncio.get_event_loop()
-
         progress = JobProgress(
             loop=loop,
             broadcaster=broadcaster,
             job_id=job_id,
             project_slug=project_slug,
-            source_idx=source_idx,
-            kind=kind,
-            stages=stages,
+            source_idx=0,
+            kind="tag",
+            stages=TAG_STAGES,
         )
         progress.publish_initial()
         active_progresses[job_id] = progress
 
-        logger.info(
-            "pipeline.start job=%s kind=%s project=%s source_idx=%s",
-            job_id, kind, project_slug, source_idx,
-        )
+        logger.info("pipeline.start job=%s project=%s", job_id, project_slug)
 
         try:
-            # Heavy GPU imports here — UI already has its skeleton by now
-            from neme_anima.pipeline import run_extract, run_rerun
-
-            if kind == "extract":
-                run_extract(
-                    project=project,
-                    source_idx=source_idx,
-                    progress=progress,
-                )
-            elif kind == "rerun":
-                run_rerun(
-                    project=project,
-                    source_idx=source_idx,
-                    progress=progress,
-                    video=payload.get("video"),
-                )
-            # ジョブキューが job.status を "done" / "error" にセットするので
-            # ここでは done() だけ呼んで通知する
+            from neme_anima.pipeline import run_tag
+            run_tag(
+                project=project,
+                character_slug=character_slug,
+                retag=retag,
+                progress=progress,
+            )
             progress.done()
         except Exception as exc:
             logger.error("pipeline.error job=%s: %s", job_id, exc)
@@ -157,13 +140,11 @@ def create_app(*, state_dir: Path | None = None) -> FastAPI:
         return {"ok": True}
 
     # ────────── API ルーターを登録 ──────────
-    from neme_anima.server.api import projects, sources, refs, characters
+    from neme_anima.server.api import projects, characters
     from neme_anima.server.api import frames, queue as queue_router
     from neme_anima.server.api import training, ws
 
     app.include_router(projects.router)
-    app.include_router(sources.router)
-    app.include_router(refs.router)
     app.include_router(characters.router)
     app.include_router(frames.router)
     app.include_router(queue_router.router)

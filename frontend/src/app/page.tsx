@@ -17,7 +17,7 @@ import { useEffect, useState, useCallback } from "react";
 import { api, connectSSE, type Project, type SSEEvent } from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 import { TabBar, type TabId } from "@/components/TabBar";
-import { SourcesTab } from "@/components/SourcesTab";
+import { UploadTab } from "@/components/UploadTab";
 import { FramesTab } from "@/components/FramesTab";
 import { TrainingTab } from "@/components/TrainingTab";
 import { SettingsTab } from "@/components/SettingsTab";
@@ -37,7 +37,7 @@ export default function Home() {
   // ── 状態 ──────────────────────────────────────────────
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("sources");
+  const [activeTab, setActiveTab] = useState<TabId>("upload");
   const [progress, setProgress] = useState<Record<string, ProgressState>>({});
   const [loading, setLoading] = useState(true);
 
@@ -144,8 +144,8 @@ export default function Home() {
 
             {/* タブコンテンツ */}
             <main className="flex-1 overflow-auto p-4">
-              {activeTab === "sources" && (
-                <SourcesTab
+              {activeTab === "upload" && (
+                <UploadTab
                   project={selectedProject}
                   progress={progress}
                   onRefresh={fetchProjects}

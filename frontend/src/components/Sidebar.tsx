@@ -114,8 +114,7 @@ export function Sidebar({
                   {p.name}
                 </div>
                 <div className="text-xs text-text-muted mt-0.5">
-                  {p.characters.length} キャラクター ·{" "}
-                  {p.source_count} ビデオ
+                  {p.characters.length} キャラクター
                 </div>
                 {/* 進捗バー */}
                 {isRunning && prog && (

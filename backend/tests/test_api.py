@@ -139,8 +139,8 @@ def test_get_settings_default(client, tmp_path: Path):
     assert "thresholds" in body
     assert "llm" in body
     # デフォルト閾値のチェック
-    assert body["thresholds"]["scene"]["threshold"] == 27.0
     assert body["thresholds"]["crop"]["longest_side"] == 1024
+    assert body["thresholds"]["tag"]["general_threshold"] == 0.35
     # LLM はデフォルト無効
     assert body["llm"]["enabled"] is False
 
@@ -151,19 +151,19 @@ def test_patch_settings(client, tmp_path: Path):
     res = client.post("/api/projects", json={"root": str(root), "name": "P"})
     slug = res.json()["slug"]
 
-    # シーン閾値を変更
+    # タグ閾値を変更
     res = client.patch(
         f"/api/projects/{slug}/settings",
-        json={"thresholds": {"scene": {"threshold": 35.0}}},
+        json={"thresholds": {"tag": {"general_threshold": 0.5}}},
     )
     assert res.status_code == 200
-    assert res.json()["thresholds"]["scene"]["threshold"] == 35.0
+    assert res.json()["thresholds"]["tag"]["general_threshold"] == 0.5
 
     # thresholds.json に書き込まれているか
     cfg_path = root / "thresholds.json"
     assert cfg_path.is_file()
     cfg = json.loads(cfg_path.read_text())
-    assert cfg["scene"]["threshold"] == 35.0
+    assert cfg["tag"]["general_threshold"] == 0.5
 
     # LLM 有効化
     res = client.patch(
@@ -176,67 +176,40 @@ def test_patch_settings(client, tmp_path: Path):
 
 
 # ─────────────────────────────────────────────
-# ④ ソース・参照画像
+# ④ 画像アップロード
 # ─────────────────────────────────────────────
 
-def test_add_and_remove_source(client, tmp_path: Path):
-    """ソース (ビデオパス) の追加・削除。"""
-    root = tmp_path / "src_test"
-    res = client.post("/api/projects", json={"root": str(root), "name": "Src"})
+def test_upload_frame(client, tmp_path: Path):
+    """画像アップロードで kept/ に保存され、metadata.jsonl に登録されること。"""
+    root = tmp_path / "upload_test"
+    res = client.post("/api/projects", json={"root": str(root), "name": "Up"})
     slug = res.json()["slug"]
 
-    # 存在しないパスでも登録はできる (抽出時にエラーになる)
-    fake_video = "/tmp/fake_video.mp4"
-    res = client.post(
-        f"/api/projects/{slug}/sources",
-        json={"path": fake_video},
-    )
-    assert res.status_code == 201
-    assert res.json()["path"] == fake_video
-
-    # 一覧
-    res = client.get(f"/api/projects/{slug}/sources")
-    assert len(res.json()) == 1
-
-    # 削除
-    res = client.delete(f"/api/projects/{slug}/sources/0")
-    assert res.status_code == 204
-
-    res = client.get(f"/api/projects/{slug}/sources")
-    assert len(res.json()) == 0
-
-
-def test_upload_ref(client, tmp_path: Path):
-    """参照画像のアップロード。"""
-    root = tmp_path / "ref_test"
-    res = client.post("/api/projects", json={"root": str(root), "name": "Ref"})
-    slug = res.json()["slug"]
-    char_slug = res.json()["characters"][0]["slug"]  # "default"
-
-    # 小さい偽 PNG を作成
     tiny_png = (
-        b"\x89PNG\r\n\x1a\n"      # PNG シグネチャ
-        b"\x00\x00\x00\rIHDR"     # IHDR チャンク
-        b"\x00\x00\x00\x01"       # width=1
-        b"\x00\x00\x00\x01"       # height=1
-        b"\x08\x02\x00\x00\x00"   # bit depth, color type
-        b"\x90wS\xde"             # CRC
-        b"\x00\x00\x00\x0cIDATx"  # IDAT チャンク
+        b"\x89PNG\r\n\x1a\n"
+        b"\x00\x00\x00\rIHDR"
+        b"\x00\x00\x00\x01"
+        b"\x00\x00\x00\x01"
+        b"\x08\x02\x00\x00\x00"
+        b"\x90wS\xde"
+        b"\x00\x00\x00\x0cIDATx"
         b"\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N"
-        b"\x00\x00\x00\x00IEND\xaeB`\x82"  # IEND
+        b"\x00\x00\x00\x00IEND\xaeB`\x82"
     )
     res = client.post(
-        f"/api/projects/{slug}/characters/{char_slug}/refs",
+        f"/api/projects/{slug}/frames",
         files={"file": ("test.png", tiny_png, "image/png")},
     )
     assert res.status_code == 201
-    assert res.json()["path"].endswith("test.png")
+    assert res.json()["filename"] == "test.png"
+    assert res.json()["character_slug"] == "default"
 
-    # ファイルがディスクに保存されているか
-    assert (root / "refs" / "test.png").is_file()
+    # ファイルが kept/ にあるか
+    assert (root / "output" / "kept" / "test.png").is_file()
 
-    # 一覧
-    res = client.get(f"/api/projects/{slug}/characters/{char_slug}/refs")
+    # 一覧に出てくるか
+    res = client.get(f"/api/projects/{slug}/frames")
+    assert res.status_code == 200
     assert len(res.json()) == 1
 
 

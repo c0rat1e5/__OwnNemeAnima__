@@ -41,31 +41,15 @@ export interface Project {
   root: string;
   created_at: string;
   characters: Character[];
-  source_count: number;
   llm_enabled: boolean;
-}
-
-export interface Source {
-  idx: number;
-  path: string;
-  added_at: string;
-  excluded_refs: Record<string, string[]>;
-  extraction_runs: unknown[];
-  segments: { start_seconds: number; end_seconds: number; label: string }[];
-  duration_seconds: number | null;
-  fps: number | null;
 }
 
 export interface FrameMeta {
   filename: string;
   character_slug: string;
-  track_id: number;
-  frame_idx: number;
-  source_idx: number;
-  video_stem: string;
   tags: string[];
   caption?: string;
-  rating?: string;
+  added_at?: string;
 }
 
 export interface Job {
@@ -99,24 +83,14 @@ export interface TrainingConfig {
 }
 
 // ─── 閾値 (Thresholds) ────────────────────────────────────────────────────────
-export interface SceneConfig   { threshold: number; min_scene_len_frames: number }
-export interface DetectConfig  { person_score_min: number; face_score_min: number; frame_stride: number; detect_faces: boolean }
-export interface TrackConfig   { track_thresh: number; match_thresh: number; frame_rate: number; track_buffer: number; min_tracklet_len: number }
-export interface IdentifyConfig { body_max_distance_strict: number; body_max_distance_loose: number; sample_frames_per_tracklet: number }
-export interface FrameSelectConfig { short_tracklet_seconds: number; long_tracklet_seconds: number; top_k_short: number; top_k_long: number; candidate_cap: number; dedup_min_frame_gap: number }
-export interface CropConfig    { longest_side: number; pad_ratio: number }
-export interface TagConfig     { model_name: string; general_threshold: number; character_threshold: number; no_underline: boolean; drop_overlap: boolean; vram_flush_every: number }
-export interface DedupConfig   { max_distance: number; window_size: number }
+export interface CropConfig  { longest_side: number; pad_ratio: number }
+export interface TagConfig   { model_name: string; general_threshold: number; character_threshold: number; no_underline: boolean; drop_overlap: boolean; vram_flush_every: number }
+export interface DedupConfig { max_distance: number; embed_batch_size: number }
 
 export interface Thresholds {
-  scene:        SceneConfig;
-  detect:       DetectConfig;
-  track:        TrackConfig;
-  identify:     IdentifyConfig;
-  frame_select: FrameSelectConfig;
-  crop:         CropConfig;
-  tag:          TagConfig;
-  dedup:        DedupConfig;
+  crop:  CropConfig;
+  tag:   TagConfig;
+  dedup: DedupConfig;
 }
 
 export interface LLMConfig {
@@ -148,26 +122,6 @@ export const api = {
   deleteProject: (slug: string) =>
     request<void>(`/projects/${slug}`, { method: "DELETE" }),
 
-  // --- Sources ---
-  listSources: (slug: string) =>
-    request<Source[]>(`/projects/${slug}/sources`),
-  addSource: (slug: string, path: string) =>
-    request<Source>(`/projects/${slug}/sources`, {
-      method: "POST",
-      body: JSON.stringify({ path }),
-    }),
-  removeSource: (slug: string, idx: number) =>
-    request<void>(`/projects/${slug}/sources/${idx}`, { method: "DELETE" }),
-  updateSegments: (
-    slug: string,
-    idx: number,
-    segments: Source["segments"]
-  ) =>
-    request(`/projects/${slug}/sources/${idx}/segments`, {
-      method: "PATCH",
-      body: JSON.stringify({ segments }),
-    }),
-
   // --- Characters ---
   addCharacter: (slug: string, name: string) =>
     request<Character>(`/projects/${slug}/characters`, {
@@ -179,27 +133,27 @@ export const api = {
       method: "DELETE",
     }),
 
-  // --- Refs ---
-  listRefs: (slug: string, charSlug: string) =>
-    request<{ path: string; added_at: string }[]>(
-      `/projects/${slug}/characters/${charSlug}/refs`
-    ),
-  uploadRef: async (slug: string, charSlug: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch(
-      `${BASE}/projects/${slug}/characters/${charSlug}/refs`,
-      { method: "POST", body: form }
-    );
-    if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
-    return res.json();
+  // --- Frames アップロード ---
+  uploadFrames: async (
+    slug: string,
+    files: File[],
+    characterSlug?: string
+  ): Promise<FrameMeta[]> => {
+    const results: FrameMeta[] = [];
+    for (const file of files) {
+      const form = new FormData();
+      form.append("file", file);
+      const url = characterSlug
+        ? `${BASE}/projects/${slug}/frames?character_slug=${encodeURIComponent(characterSlug)}`
+        : `${BASE}/projects/${slug}/frames`;
+      const res = await fetch(url, { method: "POST", body: form });
+      if (!res.ok) throw new Error(`Upload failed for ${file.name}: ${res.statusText}`);
+      results.push(await res.json());
+    }
+    return results;
   },
-  deleteRef: (slug: string, refFilename: string) =>
-    request<void>(`/projects/${slug}/refs/${refFilename}`, {
-      method: "DELETE",
-    }),
 
-  // --- Frames ---
+  // --- Frames 一覧 ---
   listFrames: (
     slug: string,
     opts?: { character_slug?: string; tag?: string }
@@ -226,15 +180,10 @@ export const api = {
     }),
 
   // --- Queue ---
-  startExtract: (slug: string, sourceIdx: number) =>
-    request<{ job_id: string }>(`/projects/${slug}/extract`, {
+  startTag: (slug: string, opts?: { character_slug?: string; retag?: boolean }) =>
+    request<{ job_id: string }>(`/projects/${slug}/tag`, {
       method: "POST",
-      body: JSON.stringify({ source_idx: sourceIdx }),
-    }),
-  startRerun: (slug: string, sourceIdx: number) =>
-    request<{ job_id: string }>(`/projects/${slug}/rerun`, {
-      method: "POST",
-      body: JSON.stringify({ source_idx: sourceIdx }),
+      body: JSON.stringify(opts ?? {}),
     }),
   listJobs: () => request<Job[]>("/jobs"),
   getJob: (jobId: string) => request<Job>(`/jobs/${jobId}`),

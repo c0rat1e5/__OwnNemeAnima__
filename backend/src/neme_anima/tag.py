@@ -2,7 +2,7 @@
 tag.py — WD14 EVA02-Large v3 による Danbooru タグ付け。
 
 ■ 役割:
-  クロップ画像ごとに WD14 タグ付けを行い、kohya-ss 形式の .txt を生成する。
+  画像ごとに WD14 タグ付けを行い、kohya-ss 形式の .txt を生成する。
   .txt の内容は "tag1, tag2, tag3, ..." という CSV 形式。
   また metadata.jsonl に各フレームのメタデータを追記する。
 
@@ -20,11 +20,97 @@ from pathlib import Path
 from typing import Any
 
 from neme_anima.config import TagConfig
-from neme_anima.crop import CroppedFrame
 from neme_anima.server.job_progress import JobProgress
 from neme_anima.storage.project import Project
 
 logger = logging.getLogger(__name__)
+
+# tag_crops が受け取る画像エントリの型
+# 必須: "path", "character_slug"
+ImageEntry = dict[str, Any]
+
+
+def tag_crops(
+    *,
+    crops: list[ImageEntry],
+    project: Project,
+    cfg: TagConfig,
+    progress: JobProgress,
+) -> None:
+    """画像リストに WD14 タグを付けて .txt と metadata.jsonl を生成する。
+
+    crops の各エントリに必要なキー:
+      path           : 画像ファイルの絶対パス (str)
+      character_slug : キャラクター slug (str)
+    """
+    if not crops:
+        return
+
+    progress.update("tag", 0, len(crops))
+
+    # imgutils の WD14 タガーを遅延 import (GPU が必要)
+    from imgutils.tagging import get_wd14_tags
+    import torch
+
+    metadata_rows: list[dict[str, Any]] = []
+
+    for ci, crop in enumerate(crops):
+        path = Path(crop["path"])
+        if not path.is_file():
+            continue
+
+        from PIL import Image
+        img = Image.open(path).convert("RGB")
+
+        try:
+            # WD14 でタグを予測
+            # 戻り値: (rating_dict, character_dict, general_dict)
+            rating, chars, general = get_wd14_tags(
+                img,
+                model_name=cfg.model_name,
+                general_threshold=cfg.general_threshold,
+                character_threshold=cfg.character_threshold,
+            )
+        except Exception as exc:
+            logger.warning("tag failed: %s: %s", path.name, exc)
+            continue
+
+        # タグを結合してリストにする
+        tags: list[str] = list(general.keys()) + list(chars.keys())
+
+        # アンダースコア → スペース変換
+        if cfg.no_underline:
+            tags = [t.replace("_", " ") for t in tags]
+
+        # 除外タグをフィルタ
+        if cfg.exclude_tags:
+            excl = set(cfg.exclude_tags)
+            tags = [t for t in tags if t not in excl]
+
+        # .txt ファイルを書き出す (kohya-ss 形式: "tag1, tag2, ...")
+        txt_path = path.with_suffix(".txt")
+        txt_path.write_text(", ".join(tags))
+
+        metadata_rows.append({
+            "filename": path.name,
+            "character_slug": crop.get("character_slug", "default"),
+            "tags": tags,
+            "rating": max(rating, key=rating.get) if rating else "general",
+        })
+
+        # VRAM フラッシュ
+        if (ci + 1) % cfg.vram_flush_every == 0 and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        progress.update("tag", ci + 1, len(crops))
+
+    # metadata.jsonl に追記
+    if metadata_rows:
+        with open(project.metadata_path, "a") as f:
+            for row in metadata_rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    logger.info("tag: %d images tagged", len(metadata_rows))
 
 
 def tag_crops(

@@ -2,15 +2,15 @@
 server/job_progress.py — パイプライン進捗を追跡して SSE でフロントに届ける。
 
 ■ 流れ:
-  1. パイプラインの各ステージ (detect, track, ...) が
+  1. パイプラインの各ステージ (tag, dedup) が
      progress.update(stage, current, total) を呼ぶ
   2. JobProgress が Event を作って Broadcaster.publish() に渡す
   3. Broadcaster が全 SSE クライアントに配信
   4. フロントエンドの EventSource が受け取ってプログレスバーを更新
 
-■ ステージ一覧:
-  extract: scenes → detect → track → identify → select → crop → tag → dedup
-  rerun:   identify → select → crop → tag → dedup  (検出・追跡をスキップ)
+■ ステージ一覧 (シンプル版):
+  tag:   WD14 タグ付け
+  dedup: 重複除去 (任意)
 """
 
 from __future__ import annotations
@@ -20,26 +20,15 @@ from typing import Any
 
 from neme_anima.server.events import Broadcaster, Event
 
-# 抽出パイプラインの全ステージ (順番通り)
-EXTRACT_STAGES = [
-    "scenes",    # PySceneDetect でシーン分割
-    "detect",    # YOLO でキャラクター検出
-    "track",     # ByteTrack でトラッキング
-    "identify",  # CCIP でキャラクター識別
-    "select",    # フレーム選択
-    "crop",      # クロップ
-    "tag",       # WD14 タグ付け
-    "dedup",     # 重複除去
+# タグ付けパイプラインのステージ
+TAG_STAGES = [
+    "tag",    # WD14 タグ付け
+    "dedup",  # CCIP 重複除去
 ]
 
-# 再実行 (閾値変更時): 検出・追跡はキャッシュを使うのでスキップ
-RERUN_STAGES = [
-    "identify",
-    "select",
-    "crop",
-    "tag",
-    "dedup",
-]
+# 後方互換: server/app.py などが参照している名前を残す
+EXTRACT_STAGES = TAG_STAGES
+RERUN_STAGES = TAG_STAGES
 
 
 class JobProgress:

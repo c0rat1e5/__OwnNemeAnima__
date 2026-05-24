@@ -252,161 +252,11 @@ export function SettingsTab({ project, onRefresh }: SettingsTabProps) {
         </div>
       )}
 
-      {/* ①  シーン分割 */}
-      <Section title="① Scene Detection (PySceneDetect)">
-        <FieldRow
-          label="threshold"
-          tooltip="フレーム間の輝度差がこの値を超えたらシーン切り替えと判定。大きいほどシーンが長くなる。"
-        >
-          <NumberInput
-            value={t.scene.threshold}
-            onChange={(v) => setThresh("scene", "threshold", v)}
-            step={0.5}
-            min={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="min_scene_len_frames"
-          tooltip="この未満のフレーム数のシーンは無視する (短すぎるカットを弾く)。"
-        >
-          <NumberInput
-            value={t.scene.min_scene_len_frames}
-            onChange={(v) => setThresh("scene", "min_scene_len_frames", v)}
-            min={1}
-          />
-        </FieldRow>
-      </Section>
-
-      {/* ② キャラクター検出 */}
-      <Section title="② Character Detection (DeepGHS YOLO)">
-        <FieldRow
-          label="person_score_min"
-          tooltip="人物検出の信頼スコア下限 (0〜1)。低くすると見逃しが減るが誤検出が増える。"
-        >
-          <NumberInput
-            value={t.detect.person_score_min}
-            onChange={(v) => setThresh("detect", "person_score_min", v)}
-            step={0.05}
-            min={0}
-            max={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="frame_stride"
-          tooltip="N フレームごとに検出を実行。値が大きいほど速いが取りこぼしが増える。"
-        >
-          <NumberInput
-            value={t.detect.frame_stride}
-            onChange={(v) => setThresh("detect", "frame_stride", v)}
-            min={1}
-          />
-        </FieldRow>
-      </Section>
-
-      {/* ③ トラッキング */}
-      <Section title="③ Tracking (ByteTrack)">
-        <FieldRow
-          label="track_thresh"
-          tooltip="トラッキングに使う検出の信頼スコア下限。"
-        >
-          <NumberInput
-            value={t.track.track_thresh}
-            onChange={(v) => setThresh("track", "track_thresh", v)}
-            step={0.05}
-            min={0}
-            max={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="min_tracklet_len (frames)"
-          tooltip="このフレーム数未満のトラックレットは破棄する。"
-        >
-          <NumberInput
-            value={t.track.min_tracklet_len}
-            onChange={(v) => setThresh("track", "min_tracklet_len", v)}
-            min={1}
-          />
-        </FieldRow>
-      </Section>
-
-      {/* ④ キャラクター識別 */}
-      <Section title="④ Identification (CCIP)">
-        <FieldRow
-          label="body_max_distance_strict"
-          tooltip="この距離以下 = 高確信度で同じキャラクター (小さいほど厳しい)。"
-        >
-          <NumberInput
-            value={t.identify.body_max_distance_strict}
-            onChange={(v) => setThresh("identify", "body_max_distance_strict", v)}
-            step={0.01}
-            min={0}
-            max={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="body_max_distance_loose"
-          tooltip="この距離以下 = 中確信度で同じキャラクター。strict より少し大きい値にする。"
-        >
-          <NumberInput
-            value={t.identify.body_max_distance_loose}
-            onChange={(v) => setThresh("identify", "body_max_distance_loose", v)}
-            step={0.01}
-            min={0}
-            max={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="sample_frames_per_tracklet"
-          tooltip="識別のためにトラックレットから何フレームをサンプリングするか。"
-        >
-          <NumberInput
-            value={t.identify.sample_frames_per_tracklet}
-            onChange={(v) => setThresh("identify", "sample_frames_per_tracklet", v)}
-            min={1}
-          />
-        </FieldRow>
-      </Section>
-
-      {/* ⑤ フレーム選択 */}
-      <Section title="⑤ Frame Selection">
-        <FieldRow
-          label="top_k_short"
-          tooltip="短いトラックレットから選ぶフレーム数。"
-        >
-          <NumberInput
-            value={t.frame_select.top_k_short}
-            onChange={(v) => setThresh("frame_select", "top_k_short", v)}
-            min={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="top_k_long"
-          tooltip="長いトラックレットから選ぶフレーム数。"
-        >
-          <NumberInput
-            value={t.frame_select.top_k_long}
-            onChange={(v) => setThresh("frame_select", "top_k_long", v)}
-            min={1}
-          />
-        </FieldRow>
-        <FieldRow
-          label="short/long threshold (sec)"
-          tooltip="この秒数以上のトラックレットを『長い』と判定する。"
-        >
-          <NumberInput
-            value={t.frame_select.long_tracklet_seconds}
-            onChange={(v) => setThresh("frame_select", "long_tracklet_seconds", v)}
-            step={0.5}
-            min={0}
-          />
-        </FieldRow>
-      </Section>
-
-      {/* ⑥ クロップ */}
-      <Section title="⑥ Crop">
+      {/* ① クロップ */}
+      <Section title="① Crop">
         <FieldRow
           label="longest_side (px)"
-          tooltip="クロップ画像の長辺をこの px にリサイズする (デフォルト 1024)。"
+          tooltip="画像の長辺をこの px にリサイズする (デフォルト 1024)。"
         >
           <NumberInput
             value={t.crop.longest_side}
@@ -430,8 +280,8 @@ export function SettingsTab({ project, onRefresh }: SettingsTabProps) {
         </FieldRow>
       </Section>
 
-      {/* ⑦ WD14 タグ付け */}
-      <Section title="⑦ Tagging (WD14)">
+      {/* ② WD14 タグ付け */}
+      <Section title="② Tagging (WD14)">
         <FieldRow
           label="general_threshold"
           tooltip="一般タグの信頼スコア下限。高いほどタグが絞られる。"
@@ -467,8 +317,8 @@ export function SettingsTab({ project, onRefresh }: SettingsTabProps) {
         </FieldRow>
       </Section>
 
-      {/* ⑧ 重複除去 */}
-      <Section title="⑧ Deduplication (CCIP)">
+      {/* ③ 重複除去 */}
+      <Section title="③ Deduplication (CCIP)">
         <FieldRow
           label="max_distance"
           tooltip="この距離以下のペアを『重複』と判定して reject する。"

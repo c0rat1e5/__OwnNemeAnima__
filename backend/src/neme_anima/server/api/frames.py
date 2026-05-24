@@ -1,7 +1,8 @@
 """
-server/api/frames.py — kept フレームの表示・タグ編集・移動。
+server/api/frames.py — kept フレームのアップロード・表示・タグ編集・移動。
 
 エンドポイント:
+  POST   /api/projects/{slug}/frames              → 画像アップロード (kept/ に保存)
   GET    /api/projects/{slug}/frames              → フレーム一覧 (metadata.jsonl から)
   GET    /api/projects/{slug}/frames/{filename}   → 画像ファイル配信
   PATCH  /api/projects/{slug}/frames/{filename}   → タグ/キャプション編集
@@ -13,10 +14,12 @@ from __future__ import annotations
 
 import json
 import shutil
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -61,6 +64,50 @@ class PatchFrameRequest(BaseModel):
 
 class MoveFrameRequest(BaseModel):
     character_slug: str
+
+
+@router.post("", status_code=201)
+async def upload_frame(
+    slug: str,
+    request: Request,
+    file: UploadFile = File(...),
+    character_slug: str | None = None,
+) -> dict:
+    """PNG 画像を kept/ にアップロードして metadata.jsonl に登録する。
+
+    同名ファイルが既に存在する場合は UUID サフィックスで区別する。
+    character_slug が省略された場合はプロジェクトの最初のキャラクターを使用。
+    """
+    project = _get_project(request, slug)
+
+    # ファイル名の検証 + 重複回避
+    original_name = Path(file.filename or "upload.png").name
+    if not original_name.lower().endswith(".png"):
+        raise HTTPException(status_code=400, detail="PNG ファイルのみ受け付けます")
+
+    dest = project.kept_dir / original_name
+    if dest.exists():
+        stem = Path(original_name).stem
+        dest = project.kept_dir / f"{stem}-{uuid.uuid4().hex[:8]}.png"
+
+    # キャラクター確認
+    char = project._resolve_character(character_slug)
+
+    data = await file.read()
+    dest.write_bytes(data)
+
+    # metadata.jsonl に追記
+    row: dict[str, Any] = {
+        "filename": dest.name,
+        "character_slug": char.slug,
+        "tags": [],
+        "caption": "",
+        "added_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with open(project.metadata_path, "a") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    return row
 
 
 @router.get("")

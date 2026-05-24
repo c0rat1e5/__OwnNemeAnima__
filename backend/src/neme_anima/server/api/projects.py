@@ -51,7 +51,6 @@ def _project_view(project: Project) -> dict[str, Any]:
             }
             for c in project.characters
         ],
-        "source_count": len(project.sources),
         "llm_enabled": project.llm.enabled,
     }
 

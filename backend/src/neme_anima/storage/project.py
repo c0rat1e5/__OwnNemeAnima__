@@ -5,18 +5,17 @@ storage/project.py — プロジェクトの全データモデルとファイル
 
     ~/neme-projects/megumin/
       project.json          ← プロジェクト全体の設定を JSON で保存
-      refs/                 ← キャラクターの参照画像 (CCIP マッチングに使う)
+      refs/                 ← キャラクターの参照画像
         .thumbnails/        ← UI 表示用サムネイルのキャッシュ
       output/
-        kept/               ← 抽出して「採用」したクロップ + タグ .txt
-        rejected/           ← 弾かれたクロップ
+        kept/               ← アップロード済み画像 + タグ .txt
+        rejected/           ← 除外した画像
         metadata.jsonl      ← 各フレームのメタデータ (character_slug 等)
-        cache/<stem>/       ← シーン/トラックレット検出結果 (parquet)
 
 ■ マルチキャラクター対応:
     プロジェクトは複数の Character を持てる。
     kept/ フォルダはフラットで、metadata.jsonl の character_slug で
-    どのキャラクターか判別する (ディレクトリ分けはしない)。
+    どのキャラクターか判別する。
 """
 
 from __future__ import annotations
@@ -26,10 +25,6 @@ import re
 from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
 from pathlib import Path
-
-VIDEO_EXTENSIONS = frozenset({
-    ".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".m4v", ".ts",
-})
 
 DEFAULT_CHARACTER_SLUG = "default"
 
@@ -45,23 +40,7 @@ def _slugify_character_name(name: str) -> str:
 
 
 # ─────────────────────────────────────────────
-# Segment: ビデオの抽出対象時間範囲
-# ─────────────────────────────────────────────
-@dataclass
-class Segment:
-    """ユーザーが指定した「ここだけ抽出する」時間範囲。
-    
-    空リスト = ビデオ全体を処理 (デフォルト)。
-    start_seconds, end_seconds は秒単位の float。
-    label は UI 表示用のオプション名前。
-    """
-    start_seconds: float
-    end_seconds: float
-    label: str = ""
-
-
-# ─────────────────────────────────────────────
-# RefImage: キャラクター識別用の参照画像
+# RefImage: キャラクターの参照画像
 # ─────────────────────────────────────────────
 @dataclass
 class RefImage:
@@ -72,27 +51,6 @@ class RefImage:
     """
     path: str       # refs/ フォルダ内の絶対パス
     added_at: str   # ISO-8601 UTC
-
-
-# ─────────────────────────────────────────────
-# Source: 入力ビデオ
-# ─────────────────────────────────────────────
-@dataclass
-class Source:
-    """入力ビデオファイルとその抽出設定。
-    
-    excluded_refs: {character_slug: [除外する参照画像パス, ...]}
-      → 特定のビデオで特定の参照画像を無視する (キャラクター別)。
-    segments: 処理対象の時間範囲リスト (空 = 全体)。
-    duration_seconds / fps: ffprobe でキャッシュした値。
-    """
-    path: str                               # ビデオファイルの絶対パス
-    added_at: str                           # ISO-8601 UTC
-    excluded_refs: dict[str, list[str]] = field(default_factory=dict)
-    extraction_runs: list[dict] = field(default_factory=list)
-    segments: list[Segment] = field(default_factory=list)
-    duration_seconds: float | None = None
-    fps: float | None = None
 
 
 # ─────────────────────────────────────────────
@@ -195,8 +153,6 @@ class Project:
     root: Path
     created_at: datetime
     characters: list[Character] = field(default_factory=list)
-    sources: list[Source] = field(default_factory=list)
-    source_root: str = ""
     llm: LLMConfig = field(default_factory=LLMConfig)
 
     # ────────── 保存 ──────────
@@ -207,7 +163,6 @@ class Project:
             "name": self.name,
             "slug": self.slug,
             "created_at": self.created_at.isoformat(),
-            "source_root": self.source_root,
             "characters": [
                 {
                     "slug": c.slug,
@@ -217,18 +172,6 @@ class Project:
                     "training": asdict(c.training),
                 }
                 for c in self.characters
-            ],
-            "sources": [
-                {
-                    "path": s.path,
-                    "added_at": s.added_at,
-                    "excluded_refs": s.excluded_refs,
-                    "extraction_runs": s.extraction_runs,
-                    "segments": [asdict(seg) for seg in s.segments],
-                    "duration_seconds": s.duration_seconds,
-                    "fps": s.fps,
-                }
-                for s in self.sources
             ],
             "llm": asdict(self.llm),
         }
@@ -272,7 +215,6 @@ class Project:
 
         llm_raw = data.get("llm") or {}
         characters = cls._load_characters(data)
-        sources = cls._load_sources(data, characters)
 
         return cls(
             name=str(data.get("name", root.name)),
@@ -282,8 +224,6 @@ class Project:
                 data.get("created_at", datetime.now(timezone.utc).isoformat())
             ),
             characters=characters,
-            sources=sources,
-            source_root=str(data.get("source_root", "")),
             llm=LLMConfig(
                 enabled=bool(llm_raw.get("enabled", False)),
                 endpoint=str(llm_raw.get("endpoint", "http://localhost:1234")),
@@ -333,36 +273,6 @@ class Project:
             training=training,
         )]
 
-    @staticmethod
-    def _load_sources(data: dict, characters: list[Character]) -> list[Source]:
-        """project.json の sources フィールドをパースする。"""
-        sources = []
-        for raw in data.get("sources", []):
-            seg_raw = raw.get("segments") or []
-            # excluded_refs: 古い形式 (flat list) → 新形式 (dict) に変換
-            excl_raw = raw.get("excluded_refs") or {}
-            if isinstance(excl_raw, list):
-                # 古い形式: [{character_slug: "default", refs: [...]}] か flat list
-                slug = characters[0].slug if characters else DEFAULT_CHARACTER_SLUG
-                excl_raw = {slug: excl_raw}
-
-            sources.append(Source(
-                path=str(raw.get("path", "")),
-                added_at=str(raw.get("added_at", "")),
-                excluded_refs=excl_raw,
-                extraction_runs=list(raw.get("extraction_runs", [])),
-                segments=[
-                    Segment(
-                        start_seconds=float(s.get("start_seconds", 0)),
-                        end_seconds=float(s.get("end_seconds", 0)),
-                        label=str(s.get("label", "")),
-                    )
-                    for s in seg_raw
-                ],
-                duration_seconds=raw.get("duration_seconds"),
-                fps=raw.get("fps"),
-            ))
-        return sources
 
     # ────────── キャラクター操作 ──────────
 
@@ -393,8 +303,6 @@ class Project:
         if len(self.characters) <= 1:
             raise ValueError("プロジェクトには最低 1 つのキャラクターが必要です")
         self.characters = [c for c in self.characters if c.slug != slug]
-        for s in self.sources:
-            s.excluded_refs.pop(slug, None)
         self.save()
 
     def _resolve_character(self, slug: str | None) -> Character:
@@ -410,24 +318,6 @@ class Project:
             raise KeyError(f"unknown character slug: {slug!r}")
         return c
 
-    # ────────── ソース操作 ──────────
-
-    def add_source(self, video_path: Path) -> Source:
-        """ビデオファイルをプロジェクトに追加する。"""
-        video_path = Path(video_path).resolve()
-        if any(Path(s.path) == video_path for s in self.sources):
-            raise ValueError(f"既に追加されています: {video_path}")
-        s = Source(
-            path=str(video_path),
-            added_at=datetime.now(timezone.utc).isoformat(),
-        )
-        self.sources.append(s)
-        self.save()
-        return s
-
-    def remove_source(self, source_idx: int) -> None:
-        del self.sources[source_idx]
-        self.save()
 
     # ────────── 参照画像操作 ──────────
 
@@ -484,35 +374,10 @@ class Project:
             p.unlink()
         self.save()
 
-    def set_excluded_refs(
-        self,
-        source_idx: int,
-        excluded: list[str],
-        *,
-        character_slug: str | None = None,
-    ) -> None:
-        """特定のソース×キャラクターの参照除外リストを更新する。"""
-        character = self._resolve_character(character_slug)
-        normalized = [str(Path(p).resolve()) for p in excluded]
-        src = self.sources[source_idx]
-        if normalized:
-            src.excluded_refs[character.slug] = normalized
-        else:
-            src.excluded_refs.pop(character.slug, None)
-        self.save()
 
-    def effective_refs_for(
-        self, source_idx: int, *, character_slug: str | None = None
-    ) -> list[str]:
-        """(ソース, キャラクター) ペアの有効な参照画像パスリストを返す。"""
-        character = self._resolve_character(character_slug)
-        excl = set(self.sources[source_idx].excluded_refs.get(character.slug, []))
-        return [r.path for r in character.refs if r.path not in excl]
 
     # ────────── パスヘルパー ──────────
 
-    def video_stem(self, source_idx: int) -> str:
-        return Path(self.sources[source_idx].path).stem
 
     @property
     def kept_dir(self) -> Path:
@@ -526,8 +391,6 @@ class Project:
     def metadata_path(self) -> Path:
         return self.root / "output" / "metadata.jsonl"
 
-    def cache_dir_for(self, video_stem: str) -> Path:
-        return self.root / "output" / "cache" / video_stem
 
     @property
     def training_dir(self) -> Path:
@@ -547,14 +410,3 @@ def is_under_refs(candidate: Path, project_root: Path) -> bool:
         return True
     except (ValueError, OSError):
         return False
-
-
-def list_videos(folder: Path) -> list[Path]:
-    """フォルダ直下にある動画ファイルをソートして返す (再帰なし)。"""
-    folder = Path(folder)
-    if not folder.is_dir():
-        raise NotADirectoryError(folder)
-    return sorted(
-        p for p in folder.iterdir()
-        if p.is_file() and p.suffix.lower() in VIDEO_EXTENSIONS
-    )

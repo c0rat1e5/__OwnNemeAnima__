@@ -1,11 +1,10 @@
 """
-server/api/queue.py — 抽出ジョブのキュー操作。
+server/api/queue.py — タグ付けジョブのキュー操作。
 
 エンドポイント:
-  POST /api/projects/{slug}/extract        → 抽出開始
-  POST /api/projects/{slug}/rerun          → 閾値変更後の再実行
-  GET  /api/jobs                           → 全ジョブ一覧
-  GET  /api/jobs/{job_id}                  → ジョブ詳細
+  POST /api/projects/{slug}/tag  → タグ付け開始
+  GET  /api/jobs                 → 全ジョブ一覧
+  GET  /api/jobs/{job_id}        → ジョブ詳細
 """
 
 from __future__ import annotations
@@ -16,13 +15,9 @@ from pydantic import BaseModel
 router = APIRouter(tags=["queue"])
 
 
-class ExtractRequest(BaseModel):
-    source_idx: int
-
-
-class RerunRequest(BaseModel):
-    source_idx: int
-    video: str | None = None  # ビデオ stem で絞り込む場合
+class TagRequest(BaseModel):
+    character_slug: str | None = None  # 対象キャラクター (None = 全画像)
+    retag: bool = False                # 既存タグを上書き
 
 
 def _job_view(job) -> dict:
@@ -38,32 +33,19 @@ def _job_view(job) -> dict:
     }
 
 
-@router.post("/api/projects/{slug}/extract", status_code=202)
-async def start_extract(slug: str, body: ExtractRequest, request: Request) -> dict:
-    """指定ソースの抽出パイプラインをキューに積む。
-    
+@router.post("/api/projects/{slug}/tag", status_code=202)
+async def start_tag(slug: str, body: TagRequest, request: Request) -> dict:
+    """kept/ 内の画像に WD14 タグを付けるジョブをキューに積む。
+
     即座に job_id を返す。進捗は /api/events (SSE) で受け取る。
     """
     registry = request.app.state.registry
     if registry.get(slug) is None:
         raise HTTPException(status_code=404, detail=f"project not found: {slug}")
-    job_id = request.app.state.queue.enqueue("extract", {
+    job_id = request.app.state.queue.enqueue("tag", {
         "project_slug": slug,
-        "source_idx": body.source_idx,
-    })
-    return {"job_id": job_id}
-
-
-@router.post("/api/projects/{slug}/rerun", status_code=202)
-async def start_rerun(slug: str, body: RerunRequest, request: Request) -> dict:
-    """閾値を変えたあとの再実行 (検出・追跡はキャッシュを使う)。"""
-    registry = request.app.state.registry
-    if registry.get(slug) is None:
-        raise HTTPException(status_code=404, detail=f"project not found: {slug}")
-    job_id = request.app.state.queue.enqueue("rerun", {
-        "project_slug": slug,
-        "source_idx": body.source_idx,
-        "video": body.video,
+        "character_slug": body.character_slug,
+        "retag": body.retag,
     })
     return {"job_id": job_id}
 

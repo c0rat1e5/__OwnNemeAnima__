@@ -10,17 +10,9 @@ dependencies = [
     # 数値・画像処理
     "numpy>=1.26,<2.2",
     "Pillow>=10.4",
-    "opencv-python>=4.10",
-    # シーン検出
-    "scenedetect>=0.6.5",
-    # 動画デコード
-    "decord>=0.6.0",
     # 進捗表示
     "tqdm>=4.66",
     "rich>=13.7",
-    # データ処理 (トラックレットのキャッシュに使う)
-    "pandas>=2.2",
-    "pyarrow>=18.0",
     # Web サーバー
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
