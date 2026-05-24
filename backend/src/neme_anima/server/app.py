@@ -77,6 +77,7 @@ def _make_pipeline_runner(
 
         try:
             from neme_anima.pipeline import run_tag
+
             run_tag(
                 project=project,
                 character_slug=character_slug,
@@ -113,6 +114,7 @@ def create_app(*, state_dir: Path | None = None) -> FastAPI:
 
     # TrainingManager: 抽出キューとは別の学習専用コーディネーター
     from neme_anima.server.training_runner import TrainingManager
+
     training_manager = TrainingManager(broadcaster=broadcaster)
 
     @asynccontextmanager
@@ -171,10 +173,12 @@ def create_app(*, state_dir: Path | None = None) -> FastAPI:
     async def spa_fallback(full_path: str = "") -> FileResponse:
         if full_path.startswith("api/"):
             from fastapi import HTTPException
+
             raise HTTPException(status_code=404)
         index = static_dir / "index.html"
         if not index.exists():
             from fastapi import HTTPException
+
             raise HTTPException(
                 status_code=503,
                 detail="Frontend not built yet. Run: cd frontend && npm run build",
