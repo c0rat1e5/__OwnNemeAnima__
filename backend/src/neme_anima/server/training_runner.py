@@ -161,10 +161,12 @@ class TrainingManager:
         # データセットディレクトリを組み立て (staging は別途必要)
         toml_content = f"""
 [model]
-type = "flux"
-checkpoint_path = "{cfg.anima_dit_path}"
+type = "anima"
+transformer_path = "{cfg.anima_dit_path}"
 vae_path = "{cfg.qwen_vae_path}"
-text_encoder_path = "{cfg.qwen_text_encoder_path}"
+llm_path = "{cfg.qwen_text_encoder_path}"
+dtype = "bfloat16"
+llm_adapter_lr = 0
 
 [training]
 output_dir = "{output_dir}"
@@ -174,7 +176,8 @@ lr = {cfg.lr}
 save_every_n_epochs = {cfg.save_every_n_epochs}
 keep_last_n_checkpoints = {cfg.keep_last_n_checkpoints}
 
-[lora]
+[adapter]
+type = "lora"
 rank = {cfg.rank}
 alpha = {cfg.alpha}
 

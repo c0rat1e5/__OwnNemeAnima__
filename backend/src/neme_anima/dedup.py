@@ -133,3 +133,86 @@ def dedup_crops(
         "dedup: %d/%d images removed as duplicates",
         removed, len(valid_files),
     )
+
+
+def dedup_all(
+    *,
+    project: Project,
+    cfg: DedupConfig,
+    progress: JobProgress,
+) -> None:
+    """kept/ 内の全 PNG を対象に重複除去する (アップロード画像用)。"""
+    kept_dir = project.kept_dir
+    png_files = sorted(p for p in kept_dir.glob("*.png") if p.is_file())
+
+    if len(png_files) < 2:
+        progress.update("dedup", 1, 1)
+        return
+
+    progress.update("dedup", 0, len(png_files))
+
+    from imgutils.metrics import ccip_extract_feature
+    from PIL import Image
+    import numpy as np
+
+    embeddings: list[np.ndarray] = []
+    valid_files: list[Path] = []
+
+    for i, png in enumerate(png_files):
+        try:
+            img = Image.open(png).convert("RGB")
+            emb = ccip_extract_feature(img)
+            embeddings.append(emb)
+            valid_files.append(png)
+        except Exception as exc:
+            logger.warning("dedup_all: embed failed %s: %s", png.name, exc)
+        if (i + 1) % cfg.embed_batch_size == 0:
+            progress.update("dedup", i + 1, len(png_files))
+
+    if not embeddings:
+        return
+
+    emb_matrix = np.stack(embeddings)
+    diff = emb_matrix[:, np.newaxis, :] - emb_matrix[np.newaxis, :, :]
+    dist_matrix = np.linalg.norm(diff, axis=-1)
+
+    n = len(valid_files)
+    kept = [True] * n
+    for i in range(n):
+        if not kept[i]:
+            continue
+        for j in range(i + 1, n):
+            if kept[j] and dist_matrix[i][j] <= cfg.max_distance:
+                kept[j] = False
+
+    removed = 0
+    for png, keep in zip(valid_files, kept):
+        if not keep:
+            dst = project.rejected_dir / png.name
+            shutil.move(str(png), str(dst))
+            txt = png.with_suffix(".txt")
+            if txt.is_file():
+                shutil.move(str(txt), str(project.rejected_dir / txt.name))
+            removed += 1
+
+    if removed > 0 and project.metadata_path.exists():
+        removed_names = {p.name for p, keep in zip(valid_files, kept) if not keep}
+        rows = []
+        with open(project.metadata_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    if row.get("filename") not in removed_names:
+                        rows.append(row)
+                except json.JSONDecodeError:
+                    pass
+        with open(project.metadata_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    progress.update("dedup", len(png_files), len(png_files))
+    logger.info("dedup_all: %d/%d images removed as duplicates", removed, len(valid_files))
+

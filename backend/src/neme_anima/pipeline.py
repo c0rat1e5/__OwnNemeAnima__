@@ -28,6 +28,43 @@ def _load_thresholds(project: Project) -> Thresholds:
     return Thresholds()
 
 
+def _sync_existing_txt_to_metadata(project: Project, png_files: list) -> None:
+    """kept/ に .txt が存在するのに metadata.jsonl のタグが空の画像を同期する。"""
+    if not project.metadata_path.exists():
+        return
+
+    rows: list[dict] = []
+    with open(project.metadata_path) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+
+    changed = False
+    idx = {r["filename"]: i for i, r in enumerate(rows)}
+    for png in png_files:
+        txt = png.with_suffix(".txt")
+        if not txt.is_file():
+            continue
+        fn = png.name
+        if fn not in idx:
+            continue
+        if rows[idx[fn]].get("tags"):
+            continue  # 既にタグあり
+        tags = [t.strip() for t in txt.read_text().split(",") if t.strip()]
+        rows[idx[fn]]["tags"] = tags
+        changed = True
+
+    if changed:
+        with open(project.metadata_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        logger.info("sync: updated tags from .txt files")
+
+
 def run_tag(
     *,
     project: Project,
@@ -55,6 +92,9 @@ def run_tag(
         png_files = [p for p in png_files if p.name in char_files]
 
     targets = [p for p in png_files if retag or not p.with_suffix(".txt").exists()]
+
+    # .txt は存在するが metadata.jsonl のタグが空の画像を同期する
+    _sync_existing_txt_to_metadata(project, png_files)
 
     if not targets:
         logger.info("tag: nothing to tag (all already tagged)")

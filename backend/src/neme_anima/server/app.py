@@ -43,11 +43,15 @@ def _make_pipeline_runner(
     active_progresses: dict[str, JobProgress],
     registry: ProjectRegistry,
     broadcaster: Broadcaster,
+    loop_ref: list,  # lifespan 開始後に [loop] が入る
 ):
     """JobQueue が呼ぶランナー関数を作る。
 
     クロージャーにすることで registry / broadcaster を引数として受け取らずに
     ランナーの中で使えるようにしている。
+    loop_ref はメインスレッドのイベントループを保持するリスト。
+    スレッド内から asyncio.get_event_loop() は呼べないため、
+    lifespan で取得したループをここで受け取る。
     """
 
     def runner(job_id: str, payload: dict) -> None:
@@ -60,7 +64,7 @@ def _make_pipeline_runner(
             logger.error("runner: project not found: %s", project_slug)
             return
 
-        loop = asyncio.get_event_loop()
+        loop = loop_ref[0]  # lifespan で格納されたメインループ
         progress = JobProgress(
             loop=loop,
             broadcaster=broadcaster,
@@ -107,9 +111,10 @@ def create_app(*, state_dir: Path | None = None) -> FastAPI:
     registry = ProjectRegistry(state_dir / "db.sqlite")
     broadcaster = Broadcaster()
     active_progresses: dict[str, JobProgress] = {}
+    loop_ref: list = []  # lifespan 起動時にメインループを格納する
 
     queue = JobQueue(
-        runner=_make_pipeline_runner(active_progresses, registry, broadcaster),
+        runner=_make_pipeline_runner(active_progresses, registry, broadcaster, loop_ref),
     )
 
     # TrainingManager: 抽出キューとは別の学習専用コーディネーター
@@ -119,6 +124,8 @@ def create_app(*, state_dir: Path | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # メインスレッドのイベントループをスレッドワーカーに渡せるよう保存
+        loop_ref.append(asyncio.get_running_loop())
         await queue.start()
         try:
             yield

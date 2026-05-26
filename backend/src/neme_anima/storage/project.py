@@ -97,11 +97,25 @@ class TrainingConfig:
     """
     preset: str = "style"
 
-    # --- パスグループ ---
-    diffusion_pipe_dir: str = ""
-    anima_dit_path: str = ""
-    qwen_vae_path: str = ""
-    qwen_text_encoder_path: str = ""
+    # --- パスグループ (~/models/ 以下を規約の保存先とする) ---
+    diffusion_pipe_dir: str = field(
+        default_factory=lambda: str(Path.home() / "models" / "diffusion-pipe")
+    )
+    anima_dit_path: str = field(
+        default_factory=lambda: str(
+            Path.home() / "models" / "anima" / "anima-base-v1.0.safetensors"
+        )
+    )
+    qwen_vae_path: str = field(
+        default_factory=lambda: str(
+            Path.home() / "models" / "anima" / "qwen_image_vae.safetensors"
+        )
+    )
+    qwen_text_encoder_path: str = field(
+        default_factory=lambda: str(
+            Path.home() / "models" / "anima" / "qwen_3_06b_base.safetensors"
+        )
+    )
 
     # --- ハイパーパラメータ ---
     rank: int = 32
