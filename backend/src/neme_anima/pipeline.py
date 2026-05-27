@@ -70,6 +70,7 @@ def run_tag(
     project: Project,
     character_slug: str | None = None,
     retag: bool = False,
+    filenames: list[str] | None = None,
     progress: JobProgress,
 ) -> None:
     """kept/ 内の画像に WD14 タグを付けて .txt を生成する。"""
@@ -90,6 +91,11 @@ def run_tag(
                 except json.JSONDecodeError:
                     pass
         png_files = [p for p in png_files if p.name in char_files]
+
+    # filenames 指定がある場合はそのファイルだけに絞る
+    if filenames is not None:
+        allowed = set(filenames)
+        png_files = [p for p in png_files if p.name in allowed]
 
     targets = [p for p in png_files if retag or not p.with_suffix(".txt").exists()]
 

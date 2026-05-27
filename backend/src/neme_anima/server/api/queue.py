@@ -16,8 +16,9 @@ router = APIRouter(tags=["queue"])
 
 
 class TagRequest(BaseModel):
-    character_slug: str | None = None  # 対象キャラクター (None = 全画像)
-    retag: bool = False                # 既存タグを上書き
+    character_slug: str | None = None        # 対象キャラクター (None = 全画像)
+    retag: bool = False                      # 既存タグを上書き
+    filenames: list[str] | None = None       # 対象ファイル名リスト (None = 全画像)
 
 
 def _job_view(job) -> dict:
@@ -46,6 +47,7 @@ async def start_tag(slug: str, body: TagRequest, request: Request) -> dict:
         "project_slug": slug,
         "character_slug": body.character_slug,
         "retag": body.retag,
+        "filenames": body.filenames,
     })
     return {"job_id": job_id}
 

@@ -18,9 +18,10 @@ interface UploadTabProps {
   project: Project;
   progress: Record<string, ProgressState>;
   onRefresh: () => void;
+  onNavigateToFrames: () => void;
 }
 
-export function UploadTab({ project, progress, onRefresh }: UploadTabProps) {
+export function UploadTab({ project, progress, onRefresh, onNavigateToFrames }: UploadTabProps) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState<FrameMeta[]>([]);
@@ -284,9 +285,17 @@ export function UploadTab({ project, progress, onRefresh }: UploadTabProps) {
       {/* ── 今回アップロードしたファイル一覧 ── */}
       {uploaded.length > 0 && (
         <div>
-          <p className="mb-2 text-xs text-text-secondary">
-            このセッションでアップロード: {uploaded.length} 枚
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-text-secondary">
+              このセッションでアップロード: {uploaded.length} 枚
+            </p>
+            <button
+              onClick={onNavigateToFrames}
+              className="flex items-center gap-1 rounded border border-accent px-3 py-1 text-xs text-accent hover:bg-accent hover:text-white transition-colors"
+            >
+              Frames で確認 →
+            </button>
+          </div>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
             {uploaded.map((f) => (
               <div

@@ -1,13 +1,101 @@
 INFO:     Will watch for changes in these directories: ['/home/default/AC/__OwnNemeAnima__/backend']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [31860] using WatchFiles
-INFO:     Started server process [31864]
+INFO:     Started reloader process [23416] using WatchFiles
+INFO:     Started server process [23423]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     127.0.0.1:44316 - "GET /api/projects HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44320 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57978 - "GET /api/events HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'src/neme_anima/server/api/queue.py', 'src/neme_anima/pipeline.py', 'src/neme_anima/server/app.py'. Reloading...
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [31864]
-INFO:     Stopping reloader process [31860]
+INFO:     Finished server process [23423]
+INFO:     Started server process [24427]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'src/neme_anima/server/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [24427]
+INFO:     Started server process [24464]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:47702 - "POST /api/projects/test001/frames HTTP/1.1" 201 Created
+INFO:     127.0.0.1:47706 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47708 - "GET /api/projects/test001/frames/Gemini_Generated_Image_ildps1ildps1ildp-8193f1a5.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47710 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47726 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47736 - "GET /api/projects/test001/frames/ComfyUI_00003_.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47740 - "GET /api/projects/test001/frames/Gemini_Generated_Image_ildps1ildps1ildp.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57718 - "POST /api/projects/test001/tag HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:57726 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57730 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57740 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57744 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+INFO:     127.0.0.1:57752 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57762 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57772 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52330 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52342 - "GET /api/jobs/d79d2e00-c9de-4869-a633-ab4ca9252af1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52344 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57344 - "DELETE /api/projects/test001/frames/Gemini_Generated_Image_ildps1ildps1ildp-8193f1a5.png HTTP/1.1" 204 No Content
+INFO:     127.0.0.1:57356 - "DELETE /api/projects/test001/frames/ComfyUI_00003_.png HTTP/1.1" 204 No Content
+INFO:     127.0.0.1:56062 - "POST /api/projects/test001/frames HTTP/1.1" 201 Created
+INFO:     127.0.0.1:56076 - "POST /api/projects/test001/frames HTTP/1.1" 201 Created
+INFO:     127.0.0.1:56080 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56082 - "GET /api/projects/test001/frames/ComfyUI_00003_.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56092 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56100 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56112 - "POST /api/projects/test001/tag HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:56122 - "GET /api/jobs/129b2bc6-1eec-4efc-8dca-18fb68662665 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56130 - "GET /api/jobs/129b2bc6-1eec-4efc-8dca-18fb68662665 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56136 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48348 - "DELETE /api/projects/test001/frames/Gemini_Generated_Image_ildps1ildps1ildp.png HTTP/1.1" 204 No Content
+INFO:     127.0.0.1:48354 - "DELETE /api/projects/test001/frames/ComfyUI_00003_.png HTTP/1.1" 204 No Content
+INFO:     127.0.0.1:48358 - "POST /api/projects/test001/frames HTTP/1.1" 201 Created
+INFO:     127.0.0.1:48366 - "POST /api/projects/test001/frames HTTP/1.1" 201 Created
+INFO:     127.0.0.1:48378 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48384 - "GET /api/projects/test001/frames/Gemini_Generated_Image_ildps1ildps1ildp.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48396 - "GET /api/projects/test001/frames/ComfyUI_00003_.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53722 - "POST /api/projects/test001/frames HTTP/1.1" 201 Created
+INFO:     127.0.0.1:53728 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53740 - "GET /api/projects/test001/frames/ComfyUI_00003_-1f4b2015.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53748 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53750 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53758 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53774 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53788 - "POST /api/projects/test001/tag HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:53802 - "GET /api/jobs/d3b766fb-f372-4abc-8638-11af12852e34 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53814 - "GET /api/jobs/d3b766fb-f372-4abc-8638-11af12852e34 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53824 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56526 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56534 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56548 - "GET /api/projects/test001/training/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56550 - "GET /api/projects/test001/training/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56554 - "GET /api/projects/test001/training/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56570 - "GET /api/projects/test001/training/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56582 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56592 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56604 - "POST /api/projects/test001/tag HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:56618 - "GET /api/jobs/314b2160-d504-424c-b697-97ac74fa548e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56634 - "GET /api/jobs/314b2160-d504-424c-b697-97ac74fa548e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56648 - "GET /api/projects/test001/frames HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55342 - "GET /api/events HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'src/neme_anima/server/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [24464]
+INFO:     Started server process [61468]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'src/neme_anima/server/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61468]
+INFO:     Started server process [61491]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

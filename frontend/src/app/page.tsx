@@ -149,10 +149,11 @@ export default function Home() {
                   project={selectedProject}
                   progress={progress}
                   onRefresh={fetchProjects}
+                  onNavigateToFrames={() => setActiveTab("frames")}
                 />
               )}
               {activeTab === "frames" && (
-                <FramesTab project={selectedProject} />
+                <FramesTab project={selectedProject} progress={progress} />
               )}
               {activeTab === "training" && (
                 <TrainingTab project={selectedProject} />

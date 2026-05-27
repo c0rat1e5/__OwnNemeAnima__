@@ -58,6 +58,7 @@ def _make_pipeline_runner(
         project_slug = str(payload.get("project_slug", ""))
         character_slug = payload.get("character_slug") or None
         retag = bool(payload.get("retag", False))
+        filenames = payload.get("filenames") or None
 
         project = registry.get(project_slug)
         if project is None:
@@ -86,6 +87,7 @@ def _make_pipeline_runner(
                 project=project,
                 character_slug=character_slug,
                 retag=retag,
+                filenames=filenames,
                 progress=progress,
             )
             progress.done()

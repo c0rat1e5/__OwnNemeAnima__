@@ -180,7 +180,7 @@ export const api = {
     }),
 
   // --- Queue ---
-  startTag: (slug: string, opts?: { character_slug?: string; retag?: boolean }) =>
+  startTag: (slug: string, opts?: { character_slug?: string; retag?: boolean; filenames?: string[] }) =>
     request<{ job_id: string }>(`/projects/${slug}/tag`, {
       method: "POST",
       body: JSON.stringify(opts ?? {}),
